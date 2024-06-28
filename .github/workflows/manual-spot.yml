@@ -1,0 +1,93 @@
+name: "Azure Manually create/destroy individual resource"
+run-name: ${{inputs.action}} resources for ${{inputs.platform}} in ${{ github.ref_name }} by ${{ github.actor }}
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        type: choice
+        description: Wether to create or destroy resources
+        options:
+        - create
+        - destroy
+      platform:
+        type: choice
+        description: Choose the platform
+        options:
+        - artifact-registry
+        - compute-images
+        - deepface
+        - facebook/scraper
+        - facebook/targeting
+        - fitbit/scraper
+        - fitbit/targeting
+        - flickr/scraper
+        - flickr/targeting
+        - glassdoor/scraper
+        - glassdoor/targeting
+        - googlemaps/targeting
+        - instagram/scraper
+        - instagram/targeting
+        - linkedin/scraper
+        - linkedin/targeting
+        - load-balancer
+        - main/publisher
+        - main/subscriber
+        - mapmyfitness/targeting
+        - mlbox
+        - search/scraper
+        - seon/targeting
+        - snapchat/scraper
+        - snapchat/targeting
+        - soundcloud/scraper
+        - soundcloud/targeting
+        - spokeo/scraper
+        - spokeo/targeting
+        - strava/targeting
+        - tiktok/scraper
+        - tiktok/targeting
+        - tumblr/scraper
+        - tumblr/targeting
+        - twitch/scraper
+        - twitch/targeting
+        - twitter/scraper
+        - twitter/targeting
+        - yelp/targeting
+        - youtube/targeting
+        - radaris/scraper
+        - radaris/targeting
+        - legal/scraper
+        - legal/targeting
+
+jobs:
+  terraform:
+    name: "Manage resources"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.3.6
+      
+      - name: ${{inputs.action}} ${{inputs.platform}}
+        run: |
+          echo "platform is ${{ github.event.inputs.platform }}"
+          
+          cd ${{ github.event.inputs.platform }}
+          ls -a
+          
+          terraform init -backend-config=vars/dev/backend-config.tfvars
+          if [ "${{ github.event.inputs.action }}" == "create" ]; then
+            terraform plan -input=false --var-file=vars/dev/terraform.tfvars --var-file=vars/dev/backend-config.tfvars -out=tf.plan
+          else
+            terraform plan -input=false --var-file=vars/dev/terraform.tfvars --var-file=vars/dev/backend-config.tfvars -out=tf.plan -destroy
+          fi
+          #terraform apply "tf.plan"
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.DEV_CICD_SA }}
